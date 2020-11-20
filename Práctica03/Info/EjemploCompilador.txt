@@ -1,0 +1,14 @@
+wile (x) {
+  a++;
+}
+
+ETIQUETA_WHILE
+  valord x
+  sifalsovea ETIQUETA_FIN
+  valori a
+  valord a
+  mete 1
+  vea ETIQUETA_WHILE
+ETIQUETA_FIN
+
+// Tarea Viernes: Coger gramática y en javacc

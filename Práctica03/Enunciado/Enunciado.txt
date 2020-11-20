@@ -1,0 +1,191 @@
+﻿Se trata de utilizar JavaCC para obtener un compilador que traduzca un 
+lenguaje de alto nivel a código de la máquina de pila abstracta. Básicamente
+lo mismo que hace el analizador recursivo descendente en C explicado en clase.
+
+El lenguaje de alto nivel es muy sencillo. No tiene declaración de tipos.
+Y el único tipo que permite es el tipo entero. En las condiciones de las
+instrucciones if, while y do el valor 0 se interpreta como falso y
+cualquier otro valor como cierto.
+
+Los comentarios en el lenguaje serán en línea con la secuencia "**".
+
+
+La gramática del lenguaje es la siguiente:
+
+    program -> sentences
+  sentences -> sentences sent
+            | sent
+       sent -> assig | proc
+      assig -> 'COMPUTE' ID '=' exp
+            |  'MOVE (NUM | ID) 'TO' ID
+       proc -> 'IF' exp THEN sentences elseopt
+            |  'EVALUATE' ID (whenclause)+ END-EVALUATE
+            |  'PERFORM' 'UNTIL' exp sentences 'END-PERFORM'
+            |  'DISPLAY' exp
+    elseopt -> 'ELSE' sentences 'END-IF'
+            |  'END-IF'
+ whenclause -> 'WHEN' exp sentences
+        exp -> exp '+' term
+            |  exp '-' term
+            |  term
+       term -> term '*' fac
+            |  term '/' fac
+            |  fac
+        fac -> NUM | ID | '(' exp ')'
+
+NOTAS: Se debe eliminar la recursividad y factorizar la gramática antes de
+       empezar a programar en JavaCC (en caso de que sea necesario).
+       NUM representa un número entero e ID un identificador/variable del
+       lenguaje (puede contener números y letras, pero debe empezar por letra). 
+       El resto de comandos en mayúsculas representan palabras 
+       reservadas del lenguaje.
+
+
+Ante una entrada como:
+
+MOVE 8 TO a           ; asignación a <- 8
+MOVE 3 TO b           ; asignación b <- 3
+PERFORM UNTIL a       ; mientras a sea distinto que 0 seguir el bucle
+    COMPUTE a = a - 1 ; decrementar a--
+	DISPLAY a         ; imprimir el valor de a
+	IF b - 4
+	THEN			; imprimir 2*a si b - 4 != 0
+		DISPLAY 2*a
+	ELSE			; imprimir a/2 si b - 4 == 0
+		DISPLAY a / 2
+	END-IF
+DISPLAY (a)         ; imprimir a
+DISPLAY (a+b)       ; imprimir a+b
+
+
+Debería generar la secuencia (salvo quizás el nombre concreto de las etiquetas):
+
+	valori a
+	mete 8
+	asigna
+	valori b
+	mete 3
+	asigna
+LBL0
+	valord a
+	siciertovea LBL2
+	valori a
+	valord a
+	mete 1
+	sub
+	asigna
+	valord a
+	print
+	valord b
+	mete 4
+	sub
+	sifalsovea LBL1
+	mete 2
+	valord a
+	mul
+	print
+	vea LBL2
+LBL1
+	valord a
+	mete 2
+	div
+	print
+LBL2
+	valord a
+	print
+	valord b
+	print
+
+
+
+
+
+Ante una entrada como:
+
+; Fin de programa
+b:=5*2
+; aquí empieza el bucle con otro dentro
+WHILE 8*a+1*3 - 2/2 
+DO
+	j:=b
+	WHILE j DO
+		PRINT a*j
+		j := j - 1
+	OD
+	PRINT(a)
+OD
+; aquí empieza el if/elseif/else
+IF a THEN
+    c:=1
+ELSEIF b THEN
+    c:=2
+ELSE
+    c:=0
+FI
+PRINT(c)
+; Fin de programa
+  
+
+Debería generar la secuencia (salvo quizás el nombre concreto de las etiquetas y las variables auxiliares):
+
+	valori b
+	mete 5
+	mete 2
+	mul
+	asigna
+LBL0
+	mete 8
+	valord a
+	mul
+	mete 1
+	mete 3
+	mul
+	sum
+	mete 2
+	mete 2
+	div
+	sub
+	sifalsovea LBL1
+	valori j
+	valord b
+	asigna
+LBL2
+	valord j
+	sifalsovea LBL3
+	valord a
+	valord j
+	mul
+	print
+	valori j
+	valord j
+	mete 1
+	sub
+	asigna
+	vea LBL2
+LBL3
+	valord a
+	print
+	vea LBL0
+LBL1
+	valord a
+	sifalsovea LBL4
+	valori c
+	mete 1
+	asigna
+	vea LBL5
+LBL4
+	valord b
+	sifalsovea LBL6
+	valori c
+	mete 2
+	asigna
+	vea LBL7
+LBL6
+	valori c
+	mete 0
+	asigna
+LBL7
+LBL5
+	valord c
+	print
+
