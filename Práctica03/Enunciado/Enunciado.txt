@@ -31,7 +31,18 @@ La gramática del lenguaje es la siguiente:
        term -> term '*' fac
             |  term '/' fac
             |  fac
-        fac -> NUM | ID | '(' exp ')'
+				fac -> NUM | ID | '(' exp ')'
+				
+Gramática:
+-------------
+	program -> sentences
+	sentences -> (sent) +
+	sent -> assig | proc
+	assig -> "COMPUTE" ID "=" exp
+	exp -> term | (("+" term) | ("-" term))*
+	term -> fac | (("*" fac) | ("/" fac))*
+	fac -> NUM | ID | "(" exp ")"
+	proc -> 
 
 NOTAS: Se debe eliminar la recursividad y factorizar la gramática antes de
        empezar a programar en JavaCC (en caso de que sea necesario).
