@@ -1,0 +1,116 @@
+PARSER_BEGIN(PTres)
+
+public class PTres {
+  public static void main(String args[]) {
+    try {
+      PTres parser = new PTres(args.length < 1 ? System.in : new java.io.FileInputStream(args[0]));
+      parser.Program();
+    } catch (java.io.FileNotFoundException e) {
+      System.err.println("File not found: (" + args[0] + ")");
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.err.println("Something went wrong!");
+    }
+  }
+
+  static int global_label = 0;
+
+  public static void print(CharSequence s) {
+    System.out.println(s);
+  }
+}
+
+PARSER_END(PTres)
+
+TOKEN:
+{
+    < #DIG: ["0"-"9"] > 
+  | < #CHAR: ["a"-"z", "A"-"Z"] >
+  | < COMPUTE: "COMPUTE" >
+  | < IF: "IF" >
+  | < ELSE: "ELSE" >
+  | < END_IF: "END-IF" > 
+  | < EVALUATE: "EVALUATE" >
+  | < END_EVALUATE: "END-EVALUATE" >
+  | < PERFORM: "PERFORM" >
+  | < END_PERFORM: "END-PERFORM" >
+  | < UNTIL: "UNTIL" >
+  | < DISPLAY: "DISPLAY" >
+  | < WHEN: "WHEN" >
+  | < MOVE: "MOVE" >
+  | < TO: "TO" >
+  | < NUM: (<DIG>)+ >
+  | < ID: <CHAR> (<CHAR> | <NUM>)* >
+}
+
+SKIP: 
+{
+    < SPACES: [" ", "\t", "\n", "\r"] >
+  | < COMMENT: "**" (~["\r", "\n"])* > // Skip de los comentarios de una línea.
+}
+
+void Program(): { }
+{
+  Sentences()
+  <EOF>
+}
+
+void Sentences(): { }
+{
+  (Sen())+
+}
+
+void Sen(): { }
+{
+  (Assig() | Proc())
+}
+
+void Assig(): { Token v, m; }
+{
+  ( <COMPUTE> v=<ID> {print("\tvalori " + v);} "=" ArithExp()
+  | <MOVE> (m=<NUM> | m=<ID>) <TO> v=<ID>
+    {
+      print("\tvalori " + v);
+      print("\tmete " + m);
+    }) {print("\tasigna");}
+}
+
+void Proc(): { int label; }
+{
+  {label = global_label;}
+  ( <IF> ArithExp() {print("\tsifalsovea LBL" + label);} Sentences() { global_label++; print("\tvea LBL" + global_label);} ElseOpt() <END_IF>
+  | <EVALUATE> <ID> (WhenClause())+ <END_EVALUATE>
+  | <PERFORM> {print("LBL" + label); global_label++;} <UNTIL> ArithExp() {print("\tsiciertovea LBL" + global_label); global_label++;} Sentences() <END_PERFORM> {print("LBL" + global_label);} {print("\tvea LBL" + label);} {print("LBL" + global_label);}
+  | <DISPLAY> ArithExp() {print("\tprint");})
+}
+
+void ElseOpt(): { }
+{
+  (<ELSE> {print("LBL" + global_label);} Sentences())?
+}
+
+void WhenClause(): { Token tk; }
+{
+  (tk=<WHEN> ArithExp() Sentences())
+}
+
+void ArithExp(): { }
+{
+  MultExp()
+  ( "+" MultExp() {print("\tsum");}
+  | "-" MultExp() {print("\tsub");})?
+}
+
+void MultExp(): { }
+{
+  Value()
+  ( "*" Value() {print("\tmul");}
+  | "/" Value() {print("\tdiv");})?
+}
+
+void Value(): { Token v; }
+{
+  ( v=<NUM> {print("\tmete " + v);}
+  | v=<ID> {print("\tvalord " + v);}
+  | "(" ArithExp() ")")
+}

@@ -32,6 +32,23 @@ La gramática del lenguaje es la siguiente:
             |  multexp '/' value
             |  value
       value -> NUM | ID | '(' arithexp ')'
+				
+Gramática:
+-------------
+	program -> sentences
+	sentences -> (sent) +
+	sent -> assig | proc
+	assig -> "COMPUTE" ID "=" exp
+					| "MOVE" (NUM|ID) "TO" ID
+	proc -> "IF" arithexp ID sentences elseopt
+					| "EVALUATE" ID (whenclause)+ "END-EVALUATE"
+					| "PERFORM" "UNTIL" arithexp sentences "END-PERFORM"
+					| "DISPLAY" arithexp
+	elseopt -> "ELSE" sentences (END-IF)?
+	whenclause -> "WHEN" arithexp sentences
+	arithexp -> multexp | (multexp ("+"|"-") multexp)*
+	multexp -> value | (value ("*"|"/") value)*
+	value -> NUM | ID | "(" arithexp ")"
 
 NOTAS: Se debe eliminar la recursividad y factorizar la gramática antes de
        empezar a programar en JavaCC (en caso de que sea necesario).
