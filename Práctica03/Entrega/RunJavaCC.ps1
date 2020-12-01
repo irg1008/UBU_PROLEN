@@ -1,1 +1,0 @@
-javacc P03.jj ; javac *.java  ; java -cp . PTres $args[0] ; Remove-Item *.class ; Remove-Item *.java

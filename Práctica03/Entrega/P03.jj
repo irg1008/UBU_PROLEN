@@ -1,3 +1,10 @@
+/**
+ * Práctica 03 - Procesadores del Lenguaje.
+ * 
+ * @author Iván Ruiz Gázquez.
+ * @date 24/11/2020.
+ */
+
 PARSER_BEGIN(PTres)
 
 public class PTres {
@@ -15,9 +22,32 @@ public class PTres {
 
   static int global_label = 0;
 
+  public static int getLabel() {
+    return global_label++;
+  }
+
   public static void print(CharSequence s) {
     System.out.println(s);
   }
+  
+  public static void printT(CharSequence s) {
+    print("\t" + s);
+  }
+
+  // Funciones salida del programa.
+  public static void valori(Token s)          { printT("valori " + s); }
+  public static void valord(Token s)          { printT("valord " + s); }
+  public static void mete(Token s)            { printT("mete " + s); }
+  public static void siFalsoVea(int label)    { printT("sifalsovea LBL" + label); }
+  public static void siCiertoVea(int label)   { printT("siciertovea LBL" + label); }
+  public static void vea(int label)           { printT("vea LBL" + label); }
+  public static void lbl(int label)           { print("LBL" + label); }
+  public static void div()                    { printT("div"); }
+  public static void mul()                    { printT("mul"); }
+  public static void sub()                    { printT("sub"); }
+  public static void sum()                    { printT("sum"); }
+  public static void asigna()                 { printT("asigna"); }
+  public static void display()                { printT("print"); }
 }
 
 PARSER_END(PTres)
@@ -49,68 +79,226 @@ SKIP:
   | < COMMENT: "**" (~["\r", "\n"])* > // Skip de los comentarios de una línea.
 }
 
+/**
+ * Main = Sentences().
+ */
 void Program(): { }
 {
   Sentences()
   <EOF>
 }
 
+/**
+ * Sentencia:
+ *   Sen()+
+ */
 void Sentences(): { }
 {
-  (Sen())+
+  ( Sen() )+
 }
 
+/**
+ * Sentencia:
+ *    Asig()
+ *  | Proc()
+ */
 void Sen(): { }
 {
-  (Assig() | Proc())
+  ( Assig() | Proc() )
 }
 
-void Assig(): { Token v, m; }
+/**
+ * Asignación:
+ *    COMPUTE <ID> = ArithExp()
+ *  | MOVE (<ID> | <NUM>) TO <ID>
+ */
+void Assig():
 {
-  ( <COMPUTE> v=<ID> {print("\tvalori " + v);} "=" ArithExp()
-  | <MOVE> (m=<NUM> | m=<ID>) <TO> v=<ID>
+  Token v,
+  m = null,
+  n = null;
+}
+{
+  (  
+      // COMPUTE
+      <COMPUTE> v=<ID> { valori(v); } "=" ArithExp()
+    | // MOVE
+      <MOVE> (m=<NUM> | n=<ID>) <TO> v=<ID>
+      {
+        valori(v);
+        if (m == null) valord(n);
+        else mete(m);
+      }
+  ) { asigna();}
+}
+
+/**
+ * Procedimiento:
+ *    If()
+ *  | Evaluate()
+ *  | Perform()
+ *  | Display()
+ */
+void Proc(): { }
+{
+  ( If() | Evaluate() | Perform() | Display() )
+}
+
+/**
+ * If ArithExp()
+ *  Sentences()
+ * ELSE
+ *  Sentences()
+ * END-IF
+ */
+void If():
+{
+  int elseLabel = getLabel(),
+  ifLabel = getLabel();
+}
+{
+  ( 
+    // IF
+    <IF> ArithExp() { siFalsoVea(elseLabel); }
+    Sentences()
     {
-      print("\tvalori " + v);
-      print("\tmete " + m);
-    }) {print("\tasigna");}
+      vea(ifLabel);
+      lbl(elseLabel);
+    }
+    // Else()
+    Else() { lbl(ifLabel); }
+    // END-IF
+    <END_IF>
+  )
 }
 
-void Proc(): { int label; }
+/**
+ * EVALUATE id
+ *  When()+
+ * END-EVALUATE
+ */
+void Evaluate():
+{ 
+  Token v;
+  int evaluateLabel = getLabel(),
+  whenLabel = getLabel();
+}
 {
-  {label = global_label;}
-  ( <IF> ArithExp() {print("\tsifalsovea LBL" + label);} Sentences() { global_label++; print("\tvea LBL" + global_label);} ElseOpt() <END_IF>
-  | <EVALUATE> <ID> (WhenClause())+ <END_EVALUATE>
-  | <PERFORM> {print("LBL" + label); global_label++;} <UNTIL> ArithExp() {print("\tsiciertovea LBL" + global_label); global_label++;} Sentences() <END_PERFORM> {print("LBL" + global_label);} {print("\tvea LBL" + label);} {print("LBL" + global_label);}
-  | <DISPLAY> ArithExp() {print("\tprint");})
+  ( 
+    // EVALUATE
+    <EVALUATE> v=<ID>
+    ( WhenClause(v, evaluateLabel, whenLabel) 
+      {
+        lbl(whenLabel);
+        whenLabel = getLabel();
+      }
+    )+
+    // END-EVALUATE
+    <END_EVALUATE> { lbl(evaluateLabel); }
+  )
 }
 
-void ElseOpt(): { }
+/**
+ * PERFORM UNTIL ArithExp()
+ *  Sentences()
+ * END-PERFORM
+ */
+void Perform():
 {
-  (<ELSE> {print("LBL" + global_label);} Sentences())?
+  int performLabel = getLabel(),
+  endPerformLabel = getLabel();
 }
-
-void WhenClause(): { Token tk; }
 {
-  (tk=<WHEN> ArithExp() Sentences())
+  ( 
+    // PERFORM UNTIL
+    <PERFORM> <UNTIL> { lbl(performLabel); }
+    ArithExp() { siCiertoVea(endPerformLabel); } 
+    Sentences()
+    // END-PERFORM
+    <END_PERFORM> 
+    {
+      vea(performLabel);
+      lbl(endPerformLabel);
+    }
+  ) 
 }
 
+/**
+ * DISPLAY ArithExp()
+ */
+void Display(): { }
+{ 
+  // DISPLAY
+  ( <DISPLAY> ArithExp() ) { display(); }
+}
+
+/**
+ * ELSE
+ *  Sentences()
+ */
+void Else(): { }
+{
+  ( <ELSE> Sentences() )?
+}
+
+/**
+ * WHEN ArithExp()
+ *  Sentences()
+ */
+void WhenClause
+(
+  Token v,
+  int evaluateLabel,
+  int whenLabel
+): { }
+{
+  ( 
+    // WHEN
+    <WHEN> { valord(v); }
+    ArithExp() 
+    {
+      sub();
+      siFalsoVea(whenLabel);
+    }
+    Sentences() { vea(evaluateLabel); }
+  )
+}
+
+/**
+ * MultExp() ("+" | "-") MultExp()
+ */
 void ArithExp(): { }
 {
   MultExp()
-  ( "+" MultExp() {print("\tsum");}
-  | "-" MultExp() {print("\tsub");})?
+  (
+      "+" MultExp() { sum(); }
+    | "-" MultExp() { sub(); }
+  )*
 }
 
+/**
+ * Value() ("*" | "/") Value()
+ */
 void MultExp(): { }
 {
   Value()
-  ( "*" Value() {print("\tmul");}
-  | "/" Value() {print("\tdiv");})?
+  (
+      "*" Value() { mul(); }
+    | "/" Value() { div(); }
+  )*
 }
 
+/**
+ * Value:
+ *   <NUM>
+ * | <ID>
+ * | "(" ArithExp() ")"
+ */
 void Value(): { Token v; }
 {
-  ( v=<NUM> {print("\tmete " + v);}
-  | v=<ID> {print("\tvalord " + v);}
-  | "(" ArithExp() ")")
+  (
+      v=<NUM> { mete(v); }
+    | v=<ID> { valord(v); }
+    | "(" ArithExp() ")"
+  )
 }
