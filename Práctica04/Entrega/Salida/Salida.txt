@@ -1,0 +1,69 @@
+	valori b
+	mete 5
+	mete 20
+	mul
+	mete 6
+	mul
+	asigna
+	valori var
+	valord c
+	asigna
+	valord x
+	mete 1
+	sub
+	sifalsovea LBL1
+	mete 100
+	print
+	vea LBL0
+LBL1
+	valord x
+	mete 2
+	sub
+	sifalsovea LBL2
+	mete 200
+	print
+	vea LBL0
+LBL2
+	valord x
+	mete 3
+	mete 3
+	sum
+	sub
+	sifalsovea LBL3
+	mete 600
+	print
+	vea LBL0
+LBL3
+LBL0
+	valord a
+	sifalsovea LBL4
+	valori c
+	mete 1
+	asigna
+	vea LBL5
+LBL4
+	valord b
+	sifalsovea LBL6
+	valori var
+	valord x
+	asigna
+	valori x
+	mete 5
+	asigna
+	vea LBL7
+LBL6
+	valori x
+	mete 4
+	mete 2
+	mul
+	mete 3
+	mete 8
+	div
+	sum
+	asigna
+LBL7
+LBL5
+	valord var
+	valord x
+	mul
+	print

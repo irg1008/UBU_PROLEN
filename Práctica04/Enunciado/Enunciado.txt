@@ -1,0 +1,205 @@
+Se trata de utilizar bison para obtener un compilador que traduzca un 
+lenguaje de alto nivel a código de la máquina de pila abstracta. Es decir,
+lo mismo que se ha hecho con JavaCC, pero esta vez usando un generador
+de analizadores ascendentes como es bison.
+
+El lenguaje de alto nivel es muy sencillo. No tiene declaración de tipos.
+Y el único tipo que permite es el tipo entero. En las condiciones de las
+instrucciones if, while y do el valor 0 se interpreta como falso y
+cualquier otro valor como cierto.
+
+Los comentarios en el lenguaje serán en línea con la secuencia "**".
+
+
+La gramática del lenguaje es la siguiente:
+
+    program -> sentences
+  sentences -> sentences sent
+            |  sent
+       sent -> assig | proc
+      assig -> 'COMPUTE' ID '=' arithexp
+            |  'MOVE (NUM | ID) 'TO' ID
+       proc -> 'IF' arithexp sentences elseopt
+            |  'EVALUATE' ID (whenclause)+ 'END-EVALUATE'
+            |  'PERFORM' 'UNTIL' arithexp sentences 'END-PERFORM'
+            |  'DISPLAY' arithexp
+    elseopt -> 'ELSE' sentences 'END-IF'
+            |  'END-IF'
+ whenclause -> 'WHEN' arithexp sentences
+   arithexp -> arithexp '+' multexp
+            |  arithexp '-' multexp
+            |  multexp
+    multexp -> multexp '*' value
+            |  multexp '/' value
+            |  value
+      value -> NUM | ID | '(' arithexp ')'
+
+NOTAS: Se debe eliminar la recursividad y factorizar la gramática antes de
+       empezar a programar en JavaCC (en caso de que sea necesario).
+       NUM representa un número entero e ID un identificador/variable del
+       lenguaje (puede contener números y letras, pero debe empezar por letra). 
+       El resto de comandos en mayúsculas representan palabras 
+       reservadas del lenguaje.
+
+
+Ante una entrada como:
+
+MOVE 8 TO a           ** asignación a <- 8
+MOVE 3 TO b           ** asignación b <- 3
+
+PERFORM UNTIL a       ** mientras a sea distinto que 0 seguir el bucle
+    COMPUTE a = a - 1 ** decrementar a--
+	DISPLAY a         ** imprimir el valor de a
+	IF b - 4          ** imprimir 2*a si b - 4 != 0
+		DISPLAY 2*a
+	ELSE			  ** imprimir a/2 si b - 4 == 0
+		DISPLAY a / 2
+	END-IF
+END-PERFORM
+
+DISPLAY (a)           ** imprimir a
+DISPLAY (a+b)         ** imprimir a+b
+
+
+Debería generar la secuencia (salvo quizás el nombre concreto de las etiquetas):
+
+	valori a
+	mete 8
+	asigna
+	valori b
+	mete 3
+	asigna
+LBL0
+	valord a
+	siciertovea LBL1
+	valori a
+	valord a
+	mete 1
+	sub
+	asigna
+	valord a
+	print
+	valord b
+	mete 4
+	sub
+	sifalsovea LBL2
+	mete 2
+	valord a
+	mul
+	print
+	vea LBL3
+LBL2
+	valord a
+	mete 2
+	div
+	print
+LBL3
+	vea LBL0
+LBL1
+	valord a
+	print
+	valord a
+	valord b
+	sum
+	print
+
+
+Ante una entrada como:
+
+** Inicio programa
+COMPUTE b = 5*20*6
+MOVE c TO var
+
+** Una sentencia evaluate
+EVALUATE x
+    WHEN 1   DISPLAY 100
+    WHEN 2   DISPLAY 200
+    WHEN 3+3 DISPLAY 600
+END-EVALUATE
+** Un condicional anidado
+IF a
+    COMPUTE c = 1
+ELSE
+    IF b
+        MOVE x TO var
+        MOVE 5 TO x
+    ELSE
+        COMPUTE x = 4*2+3/8
+    END-IF
+END-IF
+
+DISPLAY var * (x)
+** Fin del programa
+  
+
+Debería generar la secuencia (salvo quizás el nombre concreto de las etiquetas y las variables auxiliares):
+
+	valori b
+	mete 5
+	mete 20
+	mul
+	mete 6
+	mul
+	asigna
+	valori var
+	valord c
+	asigna
+	valord x
+	mete 1
+	sub
+	sifalsovea LBL1
+	mete 100
+	print
+	vea LBL0
+LBL1
+	valord x
+	mete 2
+	sub
+	sifalsovea LBL2
+	mete 200
+	print
+	vea LBL0
+LBL2
+	valord x
+	mete 3
+	mete 3
+	sum
+	sub
+	sifalsovea LBL3
+	mete 600
+	print
+	vea LBL0
+LBL3
+LBL0
+	valord a
+	sifalsovea LBL5
+	valori c
+	mete 1
+	asigna
+	vea LBL6
+LBL5
+	valord b
+	sifalsovea LBL7
+	valori var
+	valord x
+	asigna
+	valori x
+	mete 5
+	asigna
+	vea LBL8
+LBL7
+	valori x
+	mete 4
+	mete 2
+	mul
+	mete 3
+	mete 8
+	div
+	sum
+	asigna
+LBL8
+LBL6
+	valord var
+	valord x
+	mul
+	print
